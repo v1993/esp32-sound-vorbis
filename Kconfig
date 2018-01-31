@@ -1,0 +1,10 @@
+menu "Ogg sound provider"
+
+config OGG_SND_STDIO
+	bool "Enable stdio for soundProviderOgg"
+	default y
+	help
+		If you don't need stdio as sound source you can set it to `n`
+		and save extra memory. It is equal to !STB_VORBIS_NO_STDIO.
+
+endmenu
