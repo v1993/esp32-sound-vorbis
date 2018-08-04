@@ -8,8 +8,6 @@ extern "C" {
 #include <stdio.h>
 }
 
-#define WAIT_FOREVER() while (true) vTaskDelay(1)
-
 namespace SoundOgg {
 	void SoundProviderOgg::checkErr(int e) { // TODO: Check for errors
 		switch(e) {
