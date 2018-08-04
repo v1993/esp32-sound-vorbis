@@ -1,10 +1,27 @@
 menu "Ogg sound provider"
 
-config OGG_SND_STDIO
-	bool "Enable stdio for soundProviderOgg"
-	default y
+config OGG_INTROSPECTION
+	bool "Make OggVorbis_File and mutex public"
+	default n
 	help
-		If you don't need stdio as sound source you can set it to `n`
-		and save extra memory. It is equal to !STB_VORBIS_NO_STDIO.
+		You may want to call raw operations on OggVorbis_File.
+		In this case enable it and don't forget to lock `safeState` mutex.
+
+config OGG_BUFFER_SIZE
+	int "Buffer size for channel"
+	default 2048
+	range 512 8192
+	help
+		Size of buffer per channel in bytes (1 sample = 2 bytes).
+		Alloacated memory size = this*channels_count
+		In most cases default value will work.
+
+config OGG_STACK_SIZE
+	int "Buffer size for channel"
+	default 8192
+	range 4096 32768
+	help
+		Stack size for ogg task.
+		Reduce at you own risk, increase in case of stack overflow in "SProvTask".
 
 endmenu

@@ -8,6 +8,8 @@ extern "C" {
 #include <stdio.h>
 }
 
+#define WAIT_FOREVER() while (true) vTaskDelay(1)
+
 namespace SoundOgg {
 	void SoundProviderOgg::checkErr(int e) { // TODO: Check for errors
 		switch(e) {
@@ -25,7 +27,7 @@ namespace SoundOgg {
 		chTotal = info->channels;
 		frequency = info->rate;
 
-		stackSize = 8192;
+		stackSize = CONFIG_OGG_BUFFER_SIZE;
 	}
 
 	void SoundProviderOgg::open_file(FILE *f, unsigned int ch_arg, char *initial, long ibytes) {
@@ -92,9 +94,8 @@ namespace SoundOgg {
 	}
 
 	void SoundProviderOgg::task_code() {
-		constexpr size_t ch_buf_len = 2048;
 		constexpr size_t bytes_per_sample = 2;
-		const size_t buf_len = ch_buf_len*chTotal;
+		const size_t buf_len = CONFIG_OGG_BUFFER_SIZE*chTotal;
 		auto buf = std::make_unique<char[]>(buf_len); // buf_len bytes for us (buf_len/2 samples)
 		assert(buf != nullptr);
 
@@ -109,7 +110,9 @@ namespace SoundOgg {
 				}
 				int bitstream = -1;
 				std::unique_lock<std::mutex> lock(safeState);
+				printf("%p, %p, %u, %p\n", &vorbis_file, buf.get()+buf_offset, buf_len - buf_offset, &bitstream);
 				long res = ov_read(&vorbis_file, buf.get()+buf_offset, buf_len - buf_offset, &bitstream);
+				printf("%ld", res);
 				if (res < 0) { // Error
 					postControl(FAILURE);
 					return;

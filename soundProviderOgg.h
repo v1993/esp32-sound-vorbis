@@ -8,8 +8,9 @@
 #include <exception>
 
 extern "C" {
-	#include <ivorbiscodec.h>
-	#include <ivorbisfile.h>
+	#include <tremor/ivorbiscodec.h>
+	#include <tremor/ivorbisfile.h>
+	#undef _OS_H
 }
 
 namespace SoundOgg {
@@ -50,6 +51,14 @@ namespace SoundOgg {
 	}
 
 	class SoundProviderOgg: public Sound::SoundProviderTask {
+		#if CONFIG_OGG_INTROSPECTION
+		public:
+		#else
+		protected:
+		#endif
+			OggVorbis_File vorbis_file;
+			std::mutex safeState; // You must NOT preform any blocking operations in "safe" area
+
 		protected:
 			long frequency;
 			virtual unsigned long int getFrequency() override { return frequency; };
@@ -61,10 +70,7 @@ namespace SoundOgg {
 
 			virtual void provider_restart() override; // Seek to start
 
-			std::mutex safeState; // You must NOT preform any blocking operations in "safe" area
 			std::atomic<bool> seeked = {false}; // Read again
-
-			OggVorbis_File vorbis_file;
 
 			void checkErr(int err);
 			void setup(unsigned int ch_arg);
