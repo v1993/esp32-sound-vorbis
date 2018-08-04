@@ -17,11 +17,10 @@ config OGG_BUFFER_SIZE
 		In most cases default value will work.
 
 config OGG_STACK_SIZE
-	int "Buffer size for channel"
+	int "Stack size for ogg task"
 	default 8192
 	range 4096 32768
 	help
-		Stack size for ogg task.
 		Reduce at you own risk, increase in case of stack overflow in "SProvTask".
 
 endmenu

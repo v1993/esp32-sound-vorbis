@@ -27,7 +27,7 @@ namespace SoundOgg {
 		chTotal = info->channels;
 		frequency = info->rate;
 
-		stackSize = CONFIG_OGG_BUFFER_SIZE;
+		stackSize = CONFIG_OGG_STACK_SIZE;
 	}
 
 	void SoundProviderOgg::open_file(FILE *f, unsigned int ch_arg, char *initial, long ibytes) {
