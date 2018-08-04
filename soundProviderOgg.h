@@ -86,10 +86,11 @@ namespace SoundOgg {
 
 			void seekRaw(long pos); // Directly calls correspondenting functions
 			void seekPcm(int64_t pos);
-			/*void seekPcmPage(int64_t pos);
+			void seekPcmPage(int64_t pos);
 			void seekTime(int64_t pos);
 			void seekTimePage(int64_t pos);
 
+			/*
 			OggInfo getInfo();
 			OggPosition getPosition();
 			OggComment getComment();*/

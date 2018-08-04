@@ -138,4 +138,22 @@ namespace SoundOgg {
 		ov_pcm_seek(&vorbis_file, pos);
 	};
 
+	void SoundProviderOgg::seekPcmPage(int64_t pos) {
+		checkSeekable();
+		std::unique_lock<std::mutex> lock(safeState);
+		ov_pcm_seek_page(&vorbis_file, pos);
+	};
+
+	void SoundProviderOgg::seekTime(int64_t pos) {
+		checkSeekable();
+		std::unique_lock<std::mutex> lock(safeState);
+		ov_time_seek(&vorbis_file, pos);
+	};
+
+	void SoundProviderOgg::seekTimePage(int64_t pos) {
+		checkSeekable();
+		std::unique_lock<std::mutex> lock(safeState);
+		ov_time_seek_page(&vorbis_file, pos);
+	};
+
 };
