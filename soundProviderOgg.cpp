@@ -63,7 +63,7 @@ namespace SoundOgg {
 	}
 
 	SoundProviderOgg::~SoundProviderOgg() {
-		provider_stop();
+		std::unique_lock<std::mutex> lock(safeState);
 		ov_clear(&vorbis_file);
 	}
 
@@ -163,6 +163,55 @@ namespace SoundOgg {
 		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
 		ov_time_seek_page(&vorbis_file, pos);
+	};
+
+	OggInfo SoundProviderOgg::getInfo(int i) {
+		OggInfo info;
+		std::unique_lock<std::mutex> lock(safeState);
+		vorbis_info* baseinfo = ov_info(&vorbis_file, i);
+		// info. = baseinfo->
+		info.version = baseinfo->version;
+		info.channels = baseinfo->channels;
+		info.rate = baseinfo->rate;
+
+		info.bitrate_upper = baseinfo->bitrate_upper;
+		info.bitrate_nominal = baseinfo->bitrate_nominal;
+		info.bitrate_lower = baseinfo->bitrate_lower;
+		lock.unlock();
+
+		info.seekable = seekable();
+
+		if (info.seekable) {
+			lock.lock();
+			info.raw_total = ov_raw_total(&vorbis_file, i);
+			info.pcm_total = ov_pcm_total(&vorbis_file, i);
+			info.time_total = ov_time_total(&vorbis_file, i);
+			lock.unlock();
+		}
+		return info;
+	};
+
+	OggPosition SoundProviderOgg::getPosition() {
+		OggPosition pos;
+		std::unique_lock<std::mutex> lock(safeState);
+		pos.raw = ov_raw_tell(&vorbis_file);
+		pos.pcm = ov_pcm_tell(&vorbis_file);
+		pos.time = ov_time_tell(&vorbis_file);
+		return pos;
+	};
+
+	OggComment SoundProviderOgg::getComment(int i) {
+		OggComment comment;
+		std::unique_lock<std::mutex> lock(safeState);
+		vorbis_comment* comment_struct = ov_comment(&vorbis_file,i);
+		{
+			for(size_t i = 0; i < comment_struct->comments; ++i) {
+				int len = comment_struct->comment_lengths[i];
+				comment.comments.emplace_back(comment_struct->user_comments[i], len);
+			}
+		}
+		comment.vendor = comment_struct->vendor;
+		return comment;
 	};
 
 };

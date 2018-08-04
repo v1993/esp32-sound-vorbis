@@ -90,9 +90,8 @@ namespace SoundOgg {
 			void seekTime(int64_t pos);
 			void seekTimePage(int64_t pos);
 
-			/*
-			OggInfo getInfo();
+			OggInfo getInfo(int i = -1);
 			OggPosition getPosition();
-			OggComment getComment();*/
+			OggComment getComment(int i = -1);
 	};
 };
