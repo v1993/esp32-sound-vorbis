@@ -69,7 +69,7 @@ namespace SoundOgg {
 			void checkErr(int err);
 			void setup(unsigned int ch_arg);
 			void open_file(FILE *f, unsigned int ch_arg, char *initial, long ibytes);
-			// void open_callbacks(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial, long ibytes);
+			void open_callbacks(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial, long ibytes);
 
 			bool seekable() { std::unique_lock<std::mutex> lock(safeState); return (ov_seekable(&vorbis_file) == 0) ? false : true; };
 
@@ -77,7 +77,7 @@ namespace SoundOgg {
 		public:
 			explicit SoundProviderOgg(FILE *f, unsigned int ch_arg, char *initial = nullptr, long ibytes = 0); // Calls ov_open directly
 			// TODO: implement ov_open_callbacks version
-			// explicit SoundProviderOgg(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial = nullptr, long ibytes = 0)
+			explicit SoundProviderOgg(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial = nullptr, long ibytes = 0);
 
 			explicit SoundProviderOgg(const unsigned char *data, int len, unsigned int ch_arg, char *initial = nullptr, long ibytes = 0); // Uses fmemopen to open memory as file
 			explicit SoundProviderOgg(const char* file, unsigned int ch_arg, char *initial = nullptr, long ibytes = 0); // Uses fopen in read only mode

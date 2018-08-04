@@ -33,8 +33,17 @@ namespace SoundOgg {
 		setup(ch_arg);
 	}
 
+	void SoundProviderOgg::open_callbacks(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial, long ibytes) {
+		checkErr(ov_open_callbacks(datasource, &vorbis_file, initial, ibytes, callbacks));
+		setup(ch_arg);
+	}
+
 	SoundProviderOgg::SoundProviderOgg(FILE *f, unsigned int ch_arg, char *initial, long ibytes) {
 		open_file(f, ch_arg, initial, ibytes);
+	}
+
+	SoundProviderOgg::SoundProviderOgg(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial, long ibytes) {
+		open_callbacks(datasource, callbacks, ch_arg, initial, ibytes);
 	}
 
 	SoundProviderOgg::SoundProviderOgg(const unsigned char *data, int len, unsigned int ch_arg, char *initial, long ibytes) {
