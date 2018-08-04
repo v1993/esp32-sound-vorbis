@@ -110,9 +110,7 @@ namespace SoundOgg {
 				}
 				int bitstream = -1;
 				std::unique_lock<std::mutex> lock(safeState);
-				printf("%p, %p, %u, %p\n", &vorbis_file, buf.get()+buf_offset, buf_len - buf_offset, &bitstream);
 				long res = ov_read(&vorbis_file, buf.get()+buf_offset, buf_len - buf_offset, &bitstream);
-				printf("%ld", res);
 				if (res < 0) { // Error
 					postControl(FAILURE);
 					return;
