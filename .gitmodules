@@ -1,0 +1,8 @@
+[submodule "tremor"]
+	path = tremor
+	url = https://git.xiph.org/tremor.git
+	branch = master
+[submodule "ogg"]
+	path = ogg
+	url = https://git.xiph.org/ogg.git
+	branch = master
