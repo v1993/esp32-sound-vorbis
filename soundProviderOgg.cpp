@@ -6,7 +6,10 @@
 #include <limits.h>
 extern "C" {
 #include <stdio.h>
+#include "esp_log.h"
 }
+
+static const char* TAG = "soundProviderOgg";
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
@@ -114,6 +117,19 @@ namespace SoundOgg {
 				std::unique_lock<std::mutex> lock(safeState);
 				long res = ov_read(&vorbis_file, buf.get()+buf_offset, buf_len - buf_offset, &bitstream);
 				if (res < 0) { // Error
+					const char* msg;
+					switch(res) {
+						case OV_HOLE:
+							msg = "interruption in the data";
+							break;
+						case OV_EBADLINK:
+							msg = "invalid stream section";
+							break;
+						default:
+							msg = "unknown error";
+							break;
+					}
+					ESP_LOGE(TAG, "Ogg read error: %s", msg);
 					postControl(FAILURE);
 					return;
 				} else if (res == 0) { // EOF
