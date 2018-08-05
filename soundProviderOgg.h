@@ -49,6 +49,12 @@ namespace SoundOgg {
 		// class : public OggException { public: virtual const char* what() const throw() { return "ogg: ";} };
 		class Unknown: public OggException { public: virtual const char* what() const throw() { return "ogg: unknown error";} };
 		class NotSeekable: public OggException { public: virtual const char* what() const throw() { return "ogg: trying to seek in unseekable stream";} };
+
+		class ReadError: public OggException { public: virtual const char* what() const throw() { return "ogg: read error";} };
+		class NotVorbis: public OggException { public: virtual const char* what() const throw() { return "ogg: data isn't vorbis data";} };
+		class BadVersion: public OggException { public: virtual const char* what() const throw() { return "ogg: vorbis version mismatch";} };
+		class BadHeader: public OggException { public: virtual const char* what() const throw() { return "ogg: invalid vorbis bitstream header";} };
+		class Fault: public OggException { public: virtual const char* what() const throw() { return "ogg: internal logic fault; indicates a bug or heap/stack corruption";} };
 	}
 
 	class SoundProviderOgg: public Sound::SoundProviderTask {

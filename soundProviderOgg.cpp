@@ -14,10 +14,18 @@ static const char* TAG = "soundProviderOgg";
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
+#define assume(x, y) __builtin_expect((x), (y))
+
 namespace SoundOgg {
-	void SoundProviderOgg::checkErr(int e) { // TODO: Check for errors
-		switch(e) {
+	void SoundProviderOgg::checkErr(int e) {
+		switch(assume(e, 0)) {
+			// case : throw OggExceptions::(); break
 			case 0: break; // No error
+			case OV_EREAD: throw OggExceptions::ReadError(); break;
+			case OV_ENOTVORBIS: throw OggExceptions::NotVorbis(); break;
+			case OV_EVERSION: throw OggExceptions::BadVersion(); break;
+			case OV_EBADHEADER: throw OggExceptions::BadHeader(); break;
+			case OV_EFAULT: throw OggExceptions::Fault(); break;
 			default: throw OggExceptions::Unknown(); break;
 		};
 	};
