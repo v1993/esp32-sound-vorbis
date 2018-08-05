@@ -128,7 +128,7 @@ namespace SoundOgg {
 				if ((sampleoffset + 1) > buf_offset) break; // If we have reached end of buf
 				unsigned char high = (unsigned char)buf[sampleoffset];
 				unsigned char low = (unsigned char)buf[sampleoffset+1];
-				short shortSample = (short)( (low << 8) | high );
+				int16_t shortSample = (short)( (low << 8) | high );
 				SoundData sample = (((int)shortSample)-SHRT_MIN)/(USHRT_MAX/255);
 				postSample(sample);
 			}
