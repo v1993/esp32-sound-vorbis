@@ -151,7 +151,7 @@ namespace SoundOgg {
 				if (unlikely(seeked)) {queueReset(); break;};
 				size_t sampleoffset = ((chTotal*i)+(ch-1))*bytes_per_sample;
 				if ((sampleoffset + 1) > buf_offset) break; // If we have reached end of buf
-				if (unlikely(buf_offset != -1 and changeRate <= buf_offset)) {
+				if (unlikely(changeRate != -1 and changeRate <= sampleoffset)) {
 					waitQueueEmpty();
 					postControl(FREQUENCY_UPDATE);
 					buf_offset = -1;
