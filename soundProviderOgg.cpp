@@ -104,6 +104,7 @@ namespace SoundOgg {
 		while(not eof) {
 			size_t buf_offset = 0;
 			seeked = false;
+			long changeRate = -1; // No changes
 			while(buf_offset < buf_len) {
 				if (seeked) {
 					buf_offset = 0;
@@ -119,13 +120,26 @@ namespace SoundOgg {
 					eof = true;
 					break; // Success
 				} else {
+					vorbis_info* info = ov_info(&vorbis_file, bitstream);
+					if (unlikely(frequency != info->rate)) { // Who on this planet need it? Take him to me!
+						frequency = info->rate;
+						changeRate = buf_offset;
+					}
 					buf_offset += res;
+					if (unlikely(changeRate != -1)) {
+						break; // Only one change per buffer to prevent checks hell
+					}
 				}
 			}
 			for (size_t i = 0; true; ++i) {
-				if (seeked) {break;};
+				if (unlikely(seeked)) {queueReset(); break;};
 				size_t sampleoffset = ((chTotal*i)+(ch-1))*bytes_per_sample;
 				if ((sampleoffset + 1) > buf_offset) break; // If we have reached end of buf
+				if (unlikely(buf_offset != -1 and changeRate <= buf_offset)) {
+					waitQueueEmpty();
+					postControl(FREQUENCY_UPDATE);
+					buf_offset = -1;
+				}
 				unsigned char high = (unsigned char)buf[sampleoffset];
 				unsigned char low = (unsigned char)buf[sampleoffset+1];
 				int16_t shortSample = (short)( (low << 8) | high );
