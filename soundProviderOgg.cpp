@@ -8,6 +8,9 @@ extern "C" {
 #include <stdio.h>
 }
 
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+
 namespace SoundOgg {
 	void SoundProviderOgg::checkErr(int e) { // TODO: Check for errors
 		switch(e) {
@@ -48,7 +51,7 @@ namespace SoundOgg {
 
 	SoundProviderOgg::SoundProviderOgg(const unsigned char *data, int len, unsigned int ch_arg, char *initial, long ibytes) {
 		FILE* memfile = fmemopen(const_cast<unsigned char*>(data), len, "r");
-		if (memfile == nullptr) {
+		if (unlikely(memfile == nullptr)) {
 			std::system_error(errno);
 		}
 		open_file(memfile, ch_arg, initial, ibytes);
@@ -56,7 +59,7 @@ namespace SoundOgg {
 
 	SoundProviderOgg::SoundProviderOgg(const char* file, unsigned int ch_arg, char *initial, long ibytes) {
 		FILE* filed = fopen(file, "r");
-		if (filed == nullptr) {
+		if (unlikely(filed == nullptr)) {
 			std::system_error(errno);
 		}
 		open_file(filed, ch_arg, initial, ibytes);
