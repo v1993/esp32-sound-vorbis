@@ -73,7 +73,12 @@ namespace SoundOgg {
 		if (unlikely(filed == nullptr)) {
 			std::system_error(errno);
 		}
-		open_file(filed, ch_arg, initial, ibytes);
+		try {
+			open_file(filed, ch_arg, initial, ibytes);
+		} catch (...) { // FILE* isn't RAII thing, so I'm forced to this ugly hack
+			fclose(filed);
+			throw;
+		}
 	}
 
 	SoundProviderOgg::~SoundProviderOgg() {
