@@ -26,6 +26,7 @@ namespace SoundOgg {
 		long bitrate_lower;
 
 		bool seekable; // ov_seekable
+		long streams; // ov_streams
 
 		int64_t raw_total; // ov_raw_total, only if seekable
 		int64_t pcm_total; // ov_pcm_total

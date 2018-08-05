@@ -182,6 +182,9 @@ namespace SoundOgg {
 		lock.unlock();
 
 		info.seekable = seekable();
+		lock.lock();
+		info.streams  = ov_streams(&vorbis_file);
+		lock.unlock();
 
 		if (info.seekable) {
 			lock.lock();
