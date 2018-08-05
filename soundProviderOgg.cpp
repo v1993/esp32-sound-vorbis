@@ -116,7 +116,7 @@ namespace SoundOgg {
 				int bitstream = -1;
 				std::unique_lock<std::mutex> lock(safeState);
 				long res = ov_read(&vorbis_file, buf.get()+buf_offset, buf_len - buf_offset, &bitstream);
-				if (res < 0) { // Error
+				if (unlikely(res < 0)) { // Error
 					const char* msg;
 					switch(res) {
 						case OV_HOLE:
