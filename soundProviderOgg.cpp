@@ -133,7 +133,7 @@ namespace SoundOgg {
 				postSample(sample);
 			}
 		}
-		while (uxQueueMessagesWaiting(queue) > 0) vTaskDelay(1);
+		waitQueueEmpty();
 		postControl(END);
 	}
 
