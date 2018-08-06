@@ -1,4 +1,4 @@
-#include <soundProviderOgg.h>
+#include <soundProviderVorbis.h>
 #include <iostream>
 #include <cmath>
 #include <cstring>
@@ -9,28 +9,28 @@ extern "C" {
 #include "esp_log.h"
 }
 
-static const char* TAG = "soundProviderOgg";
+static const char* TAG = "soundProviderVorbis";
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
 
 #define assume(x, y) __builtin_expect((x), (y))
 
-namespace SoundOgg {
-	void SoundProviderOgg::checkErr(int e) {
+namespace SoundVorbis {
+	void SoundProviderVorbis::checkErr(int e) {
 		switch(assume(e, 0)) {
-			// case : throw OggExceptions::(); break
+			// case : throw VorbisExceptions::(); break
 			case 0: break; // No error
-			case OV_EREAD: throw OggExceptions::ReadError(); break;
-			case OV_ENOTVORBIS: throw OggExceptions::NotVorbis(); break;
-			case OV_EVERSION: throw OggExceptions::BadVersion(); break;
-			case OV_EBADHEADER: throw OggExceptions::BadHeader(); break;
-			case OV_EFAULT: throw OggExceptions::Fault(); break;
-			default: throw OggExceptions::Unknown(); break;
+			case OV_EREAD: throw VorbisExceptions::ReadError(); break;
+			case OV_ENOTVORBIS: throw VorbisExceptions::NotVorbis(); break;
+			case OV_EVERSION: throw VorbisExceptions::BadVersion(); break;
+			case OV_EBADHEADER: throw VorbisExceptions::BadHeader(); break;
+			case OV_EFAULT: throw VorbisExceptions::Fault(); break;
+			default: throw VorbisExceptions::Unknown(); break;
 		};
 	};
 
-	void SoundProviderOgg::setup(unsigned int ch_arg) {
+	void SoundProviderVorbis::setup(unsigned int ch_arg) {
 		vorbis_info* info = ov_info(&vorbis_file, -1);
 		assert(ch_arg > 0);
 		assert(ch_arg <= info->channels); // We have requested channel (count from one)
@@ -39,28 +39,28 @@ namespace SoundOgg {
 		chTotal = info->channels;
 		frequency = info->rate;
 
-		stackSize = CONFIG_OGG_STACK_SIZE;
+		stackSize = CONFIG_VORBIS_STACK_SIZE;
 	}
 
-	void SoundProviderOgg::open_file(FILE *f, unsigned int ch_arg, char *initial, long ibytes) {
+	void SoundProviderVorbis::open_file(FILE *f, unsigned int ch_arg, char *initial, long ibytes) {
 		checkErr(ov_open(f, &vorbis_file, initial, ibytes));
 		setup(ch_arg);
 	}
 
-	void SoundProviderOgg::open_callbacks(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial, long ibytes) {
+	void SoundProviderVorbis::open_callbacks(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial, long ibytes) {
 		checkErr(ov_open_callbacks(datasource, &vorbis_file, initial, ibytes, callbacks));
 		setup(ch_arg);
 	}
 
-	SoundProviderOgg::SoundProviderOgg(FILE *f, unsigned int ch_arg, char *initial, long ibytes) {
+	SoundProviderVorbis::SoundProviderVorbis(FILE *f, unsigned int ch_arg, char *initial, long ibytes) {
 		open_file(f, ch_arg, initial, ibytes);
 	}
 
-	SoundProviderOgg::SoundProviderOgg(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial, long ibytes) {
+	SoundProviderVorbis::SoundProviderVorbis(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial, long ibytes) {
 		open_callbacks(datasource, callbacks, ch_arg, initial, ibytes);
 	}
 
-	SoundProviderOgg::SoundProviderOgg(const unsigned char *data, int len, unsigned int ch_arg, char *initial, long ibytes) {
+	SoundProviderVorbis::SoundProviderVorbis(const unsigned char *data, int len, unsigned int ch_arg, char *initial, long ibytes) {
 		FILE* memfile = fmemopen(const_cast<unsigned char*>(data), len, "r");
 		if (unlikely(memfile == nullptr)) {
 			std::system_error(errno);
@@ -68,7 +68,7 @@ namespace SoundOgg {
 		open_file(memfile, ch_arg, initial, ibytes);
 	}
 
-	SoundProviderOgg::SoundProviderOgg(const char* file, unsigned int ch_arg, char *initial, long ibytes) {
+	SoundProviderVorbis::SoundProviderVorbis(const char* file, unsigned int ch_arg, char *initial, long ibytes) {
 		FILE* filed = fopen(file, "r");
 		if (unlikely(filed == nullptr)) {
 			std::system_error(errno);
@@ -81,20 +81,20 @@ namespace SoundOgg {
 		}
 	}
 
-	SoundProviderOgg::~SoundProviderOgg() {
+	SoundProviderVorbis::~SoundProviderVorbis() {
 		std::unique_lock<std::mutex> lock(safeState);
 		ov_clear(&vorbis_file);
 	}
 
-	void SoundProviderOgg::task_prestop() {
+	void SoundProviderVorbis::task_prestop() {
 		safeState.lock();
 	}
 
-	void SoundProviderOgg::task_poststop() {
+	void SoundProviderVorbis::task_poststop() {
 		safeState.unlock();
 	}
 
-	void SoundProviderOgg::provider_restart() {
+	void SoundProviderVorbis::provider_restart() {
 		if (taskHandle != nullptr) {
 			task_prestop();
 			vTaskDelete(taskHandle);
@@ -102,17 +102,17 @@ namespace SoundOgg {
 		}
 		try {
 			seekPcm(0);
-		} catch(OggExceptions::NotSeekable) {}; // It is probably ok.
+		} catch(VorbisExceptions::NotSeekable) {}; // It is probably ok.
 		unconditionalStart();
 	}
 
-	void SoundProviderOgg::checkSeekable() {
-		if (not seekable()) { throw OggExceptions::NotSeekable(); }
+	void SoundProviderVorbis::checkSeekable() {
+		if (not seekable()) { throw VorbisExceptions::NotSeekable(); }
 	}
 
-	void SoundProviderOgg::task_code() {
+	void SoundProviderVorbis::task_code() {
 		constexpr size_t bytes_per_sample = 2;
-		const size_t buf_len = CONFIG_OGG_BUFFER_SIZE*chTotal;
+		const size_t buf_len = CONFIG_VORBIS_BUFFER_SIZE*chTotal;
 		auto buf = std::make_unique<char[]>(buf_len); // buf_len bytes for us (buf_len/2 samples)
 		assert(buf != nullptr);
 
@@ -142,7 +142,7 @@ namespace SoundOgg {
 							msg = "unknown error";
 							break;
 					}
-					ESP_LOGE(TAG, "Ogg read error: %s", msg);
+					ESP_LOGE(TAG, "Ogg vorbis read error: %s", msg);
 					postControl(FAILURE);
 					return;
 				} else if (res == 0) { // EOF
@@ -180,38 +180,38 @@ namespace SoundOgg {
 		postControl(END);
 	}
 
-	void SoundProviderOgg::seekRaw(long pos) {
+	void SoundProviderVorbis::seekRaw(long pos) {
 		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
 		ov_raw_seek(&vorbis_file, pos);
 	};
 
-	void SoundProviderOgg::seekPcm(int64_t pos) {
+	void SoundProviderVorbis::seekPcm(int64_t pos) {
 		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
 		ov_pcm_seek(&vorbis_file, pos);
 	};
 
-	void SoundProviderOgg::seekPcmPage(int64_t pos) {
+	void SoundProviderVorbis::seekPcmPage(int64_t pos) {
 		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
 		ov_pcm_seek_page(&vorbis_file, pos);
 	};
 
-	void SoundProviderOgg::seekTime(int64_t pos) {
+	void SoundProviderVorbis::seekTime(int64_t pos) {
 		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
 		ov_time_seek(&vorbis_file, pos);
 	};
 
-	void SoundProviderOgg::seekTimePage(int64_t pos) {
+	void SoundProviderVorbis::seekTimePage(int64_t pos) {
 		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
 		ov_time_seek_page(&vorbis_file, pos);
 	};
 
-	OggInfo SoundProviderOgg::getInfo(int i) {
-		OggInfo info;
+	OggVorbisInfo SoundProviderVorbis::getInfo(int i) {
+		OggVorbisInfo info;
 		std::unique_lock<std::mutex> lock(safeState);
 		vorbis_info* baseinfo = ov_info(&vorbis_file, i);
 		// info. = baseinfo->
@@ -239,8 +239,8 @@ namespace SoundOgg {
 		return info;
 	};
 
-	OggPosition SoundProviderOgg::getPosition() {
-		OggPosition pos;
+	OggVorbisPosition SoundProviderVorbis::getPosition() {
+		OggVorbisPosition pos;
 		std::unique_lock<std::mutex> lock(safeState);
 		pos.raw = ov_raw_tell(&vorbis_file);
 		pos.pcm = ov_pcm_tell(&vorbis_file);
@@ -248,8 +248,8 @@ namespace SoundOgg {
 		return pos;
 	};
 
-	OggComment SoundProviderOgg::getComment(int i) {
-		OggComment comment;
+	OggVorbisComment SoundProviderVorbis::getComment(int i) {
+		OggVorbisComment comment;
 		std::unique_lock<std::mutex> lock(safeState);
 		vorbis_comment* comment_struct = ov_comment(&vorbis_file,i);
 		{

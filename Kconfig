@@ -1,13 +1,13 @@
-menu "Ogg sound provider"
+menu "Ogg vorbis sound provider"
 
-config OGG_INTROSPECTION
+config VORBIS_INTROSPECTION
 	bool "Make OggVorbis_File and mutex public"
 	default n
 	help
 		You may want to call raw operations on OggVorbis_File.
 		In this case enable it and don't forget to lock `safeState` mutex.
 
-config OGG_BUFFER_SIZE
+config VORBIS_BUFFER_SIZE
 	int "Buffer size for channel"
 	default 2048
 	range 512 8192
@@ -16,8 +16,8 @@ config OGG_BUFFER_SIZE
 		Alloacated memory size = this*channels_count
 		In most cases default value will work.
 
-config OGG_STACK_SIZE
-	int "Stack size for ogg task"
+config VORBIS_STACK_SIZE
+	int "Stack size for ogg vorbis task"
 	default 8192
 	range 4096 32768
 	help
