@@ -136,7 +136,7 @@ namespace SoundVorbis {
 				checkExit();
 				std::unique_lock<std::mutex> lock(safeState);
 				if (seeked.load()) {
-					ESP_LOGI(TAG, "Seek in read loop");
+					ESP_LOGD(TAG, "Seek in read loop");
 					buf_offset = 0;
 					seeked = false;
 				}
@@ -175,7 +175,7 @@ namespace SoundVorbis {
 			}
 			for (size_t i = 0; true; ++i) {
 				checkExit();
-				if (seeked.load()) { ESP_LOGI(TAG, "seek in post loop"); queueReset(); break;};
+				if (seeked.load()) { ESP_LOGD(TAG, "seek in post loop"); queueReset(); break;};
 				size_t sampleoffset = ((chTotal*i)+(ch-1))*bytes_per_sample;
 				if ((sampleoffset + 1) > buf_offset) break; // If we have reached end of buf
 				if (unlikely((changeRate != -1) and (changeRate <= sampleoffset))) {
@@ -199,10 +199,7 @@ namespace SoundVorbis {
 				}
 			}
 		}
-		ESP_LOGI(TAG, "waiting for sample queue end");
-		waitQueueEmpty();
-		postControl(END);
-		ESP_LOGI(TAG, "returning");
+		postControl(END); // Wait is in loop
 	}
 
 	void SoundProviderVorbis::seekRaw(long pos) {
