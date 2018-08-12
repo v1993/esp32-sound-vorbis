@@ -9,10 +9,12 @@ extern "C" {
 #include "esp_log.h"
 }
 
-static const char* TAG = "soundProviderVorbis";
+static const char* TAG = "Vorbis";
 
 #define likely(x) __builtin_expect(!!(x), 1)
 #define unlikely(x) __builtin_expect(!!(x), 0)
+
+#define checkExit() if (unlikely(exit_now.load())) return
 
 #define assume(x, y) __builtin_expect((x), (y))
 
@@ -87,11 +89,12 @@ namespace SoundVorbis {
 	}
 
 	void SoundProviderVorbis::task_prestop() {
-		safeState.lock();
+		exit_now = true;
+		heapUsed.lock();
 	}
 
 	void SoundProviderVorbis::task_poststop() {
-		safeState.unlock();
+		heapUsed.unlock();
 	}
 
 	void SoundProviderVorbis::provider_restart() {
@@ -102,7 +105,7 @@ namespace SoundVorbis {
 		}
 		try {
 			seekPcm(0);
-		} catch(VorbisExceptions::NotSeekable) {}; // It is probably ok.
+		} catch(VorbisExceptions::NotSeekable&) {}; // It is probably ok.
 		unconditionalStart();
 	}
 
@@ -111,6 +114,12 @@ namespace SoundVorbis {
 	}
 
 	void SoundProviderVorbis::task_code() {
+		std::unique_lock<std::mutex> heapLock(heapUsed);
+		vorbis_read();
+		exit_now = false;
+	}
+
+	void SoundProviderVorbis::vorbis_read() {
 		constexpr size_t bytes_per_sample = 2;
 		const size_t buf_len = CONFIG_VORBIS_BUFFER_SIZE*chTotal;
 		auto buf = std::make_unique<char[]>(buf_len); // buf_len bytes for us (buf_len/2 samples)
@@ -118,16 +127,20 @@ namespace SoundVorbis {
 
 		bool eof = false;
 		while(not eof) {
+			checkExit();
 			size_t buf_offset = 0;
 			seeked = false;
 			long changeRate = -1; // No changes
 			while(buf_offset < buf_len) {
-				if (seeked) {
+				int bitstream = -1;
+				checkExit();
+				std::unique_lock<std::mutex> lock(safeState);
+				if (seeked.load()) {
+					ESP_LOGI(TAG, "Seek in read loop");
 					buf_offset = 0;
 					seeked = false;
 				}
-				int bitstream = -1;
-				std::unique_lock<std::mutex> lock(safeState);
+				checkExit(); // Check another one time before time consuming operation
 				long res = ov_read(&vorbis_file, buf.get()+buf_offset, buf_len - buf_offset, &bitstream);
 				if (unlikely(res < 0)) { // Error
 					const char* msg;
@@ -161,10 +174,11 @@ namespace SoundVorbis {
 				}
 			}
 			for (size_t i = 0; true; ++i) {
-				if (unlikely(seeked)) {queueReset(); break;};
+				checkExit();
+				if (seeked.load()) { ESP_LOGI(TAG, "seek in post loop"); queueReset(); break;};
 				size_t sampleoffset = ((chTotal*i)+(ch-1))*bytes_per_sample;
 				if ((sampleoffset + 1) > buf_offset) break; // If we have reached end of buf
-				if (unlikely(changeRate != -1 and changeRate <= sampleoffset)) {
+				if (unlikely((changeRate != -1) and (changeRate <= sampleoffset))) {
 					waitQueueEmpty();
 					postControl(FREQUENCY_UPDATE);
 					buf_offset = -1;
@@ -175,39 +189,60 @@ namespace SoundVorbis {
 				SoundData sample = (((int)shortSample)-SHRT_MIN)/(USHRT_MAX/255);
 				postSample(sample);
 			}
+			if (eof) {
+				while (uxQueueMessagesWaiting(queue) > 0) {
+					vTaskDelay(1);
+					if(seeked) {
+						eof = false;
+						break;
+					}
+				}
+			}
 		}
+		ESP_LOGI(TAG, "waiting for sample queue end");
 		waitQueueEmpty();
 		postControl(END);
+		ESP_LOGI(TAG, "returning");
 	}
 
 	void SoundProviderVorbis::seekRaw(long pos) {
-		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
+		checkSeekable();
 		ov_raw_seek(&vorbis_file, pos);
+		seeked = true;
+		queueReset();
 	};
 
 	void SoundProviderVorbis::seekPcm(int64_t pos) {
-		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
+		checkSeekable();
 		ov_pcm_seek(&vorbis_file, pos);
+		seeked = true;
+		queueReset();
 	};
 
 	void SoundProviderVorbis::seekPcmPage(int64_t pos) {
-		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
+		checkSeekable();
 		ov_pcm_seek_page(&vorbis_file, pos);
+		seeked = true;
+		queueReset();
 	};
 
 	void SoundProviderVorbis::seekTime(int64_t pos) {
-		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
+		checkSeekable();
 		ov_time_seek(&vorbis_file, pos);
+		seeked = true;
+		queueReset();
 	};
 
 	void SoundProviderVorbis::seekTimePage(int64_t pos) {
-		checkSeekable();
 		std::unique_lock<std::mutex> lock(safeState);
+		checkSeekable();
 		ov_time_seek_page(&vorbis_file, pos);
+		seeked = true;
+		queueReset();
 	};
 
 	OggVorbisInfo SoundProviderVorbis::getInfo(int i) {
@@ -222,19 +257,14 @@ namespace SoundVorbis {
 		info.bitrate_upper = baseinfo->bitrate_upper;
 		info.bitrate_nominal = baseinfo->bitrate_nominal;
 		info.bitrate_lower = baseinfo->bitrate_lower;
-		lock.unlock();
 
 		info.seekable = seekable();
-		lock.lock();
 		info.streams  = ov_streams(&vorbis_file);
-		lock.unlock();
 
 		if (info.seekable) {
-			lock.lock();
 			info.raw_total = ov_raw_total(&vorbis_file, i);
 			info.pcm_total = ov_pcm_total(&vorbis_file, i);
 			info.time_total = ov_time_total(&vorbis_file, i);
-			lock.unlock();
 		}
 		return info;
 	};
