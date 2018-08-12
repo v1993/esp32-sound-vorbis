@@ -22,15 +22,28 @@ namespace SoundVorbis {
 	void SoundProviderVorbis::checkErr(int e) {
 		switch(assume(e, 0)) {
 			// case : throw VorbisExceptions::(); break
-			case 0: break; // No error
-			case OV_EREAD: throw VorbisExceptions::ReadError(); break;
-			case OV_ENOTVORBIS: throw VorbisExceptions::NotVorbis(); break;
-			case OV_EVERSION: throw VorbisExceptions::BadVersion(); break;
-			case OV_EBADHEADER: throw VorbisExceptions::BadHeader(); break;
-			case OV_EFAULT: throw VorbisExceptions::Fault(); break;
-			default: throw VorbisExceptions::Unknown(); break;
+			case 0:
+				break; // No error
+			case OV_EREAD:
+				throw VorbisExceptions::ReadError();
+				break;
+			case OV_ENOTVORBIS:
+				throw VorbisExceptions::NotVorbis();
+				break;
+			case OV_EVERSION:
+				throw VorbisExceptions::BadVersion();
+				break;
+			case OV_EBADHEADER:
+				throw VorbisExceptions::BadHeader();
+				break;
+			case OV_EFAULT:
+				throw VorbisExceptions::Fault();
+				break;
+			default:
+				throw VorbisExceptions::Unknown();
+				break;
 		};
-	};
+	}
 
 	void SoundProviderVorbis::setup(unsigned int ch_arg) {
 		vorbis_info* info = ov_info(&vorbis_file, -1);
@@ -77,7 +90,7 @@ namespace SoundVorbis {
 		}
 		try {
 			open_file(filed, ch_arg, initial, ibytes);
-		} catch (...) { // FILE* isn't RAII thing, so I'm forced to this ugly hack
+		} catch(...) { // FILE* isn't RAII thing, so I'm forced to this ugly hack
 			fclose(filed);
 			throw;
 		}
@@ -105,12 +118,15 @@ namespace SoundVorbis {
 		}
 		try {
 			seekPcm(0);
-		} catch(VorbisExceptions::NotSeekable&) {}; // It is probably ok.
+		} catch(VorbisExceptions::NotSeekable&) {
+		}; // It is probably ok.
 		unconditionalStart();
 	}
 
 	void SoundProviderVorbis::checkSeekable() {
-		if (not seekable()) { throw VorbisExceptions::NotSeekable(); }
+		if (not seekable()) {
+			throw VorbisExceptions::NotSeekable();
+		}
 	}
 
 	void SoundProviderVorbis::task_code() {
@@ -121,7 +137,7 @@ namespace SoundVorbis {
 
 	void SoundProviderVorbis::vorbis_read() {
 		constexpr size_t bytes_per_sample = 2;
-		const size_t buf_len = CONFIG_VORBIS_BUFFER_SIZE*chTotal;
+		const size_t buf_len = CONFIG_VORBIS_BUFFER_SIZE * chTotal;
 		auto buf = std::make_unique<char[]>(buf_len); // buf_len bytes for us (buf_len/2 samples)
 		assert(buf != nullptr);
 
@@ -146,21 +162,21 @@ namespace SoundVorbis {
 					const char* msg;
 					switch(res) {
 						case OV_HOLE:
-							msg = "interruption in the data";
-							break;
+						msg = "interruption in the data";
+						break;
 						case OV_EBADLINK:
-							msg = "invalid stream section";
-							break;
+						msg = "invalid stream section";
+						break;
 						default:
-							msg = "unknown error";
-							break;
+						msg = "unknown error";
+						break;
 					}
 					ESP_LOGE(TAG, "Ogg vorbis read error: %s", msg);
 					postControl(FAILURE);
 					return;
 				} else if (res == 0) { // EOF
 					eof = true;
-					break; // Success
+					break;// Success
 				} else {
 					vorbis_info* info = ov_info(&vorbis_file, bitstream);
 					if (unlikely(frequency != info->rate)) { // Who on this planet need it? Take him to me!
@@ -175,7 +191,7 @@ namespace SoundVorbis {
 			}
 			for (size_t i = 0; true; ++i) {
 				checkExit();
-				if (seeked.load()) { ESP_LOGD(TAG, "seek in post loop"); queueReset(); break;};
+				if (seeked.load()) {ESP_LOGD(TAG, "seek in post loop"); queueReset(); break;};
 				size_t sampleoffset = ((chTotal*i)+(ch-1))*bytes_per_sample;
 				if ((sampleoffset + 1) > buf_offset) break; // If we have reached end of buf
 				if (unlikely((changeRate != -1) and (changeRate <= sampleoffset))) {
@@ -208,7 +224,7 @@ namespace SoundVorbis {
 		ov_raw_seek(&vorbis_file, pos);
 		seeked = true;
 		queueReset();
-	};
+	}
 
 	void SoundProviderVorbis::seekPcm(int64_t pos) {
 		std::unique_lock<std::mutex> lock(safeState);
@@ -216,7 +232,7 @@ namespace SoundVorbis {
 		ov_pcm_seek(&vorbis_file, pos);
 		seeked = true;
 		queueReset();
-	};
+	}
 
 	void SoundProviderVorbis::seekPcmPage(int64_t pos) {
 		std::unique_lock<std::mutex> lock(safeState);
@@ -224,7 +240,7 @@ namespace SoundVorbis {
 		ov_pcm_seek_page(&vorbis_file, pos);
 		seeked = true;
 		queueReset();
-	};
+	}
 
 	void SoundProviderVorbis::seekTime(int64_t pos) {
 		std::unique_lock<std::mutex> lock(safeState);
@@ -232,7 +248,7 @@ namespace SoundVorbis {
 		ov_time_seek(&vorbis_file, pos);
 		seeked = true;
 		queueReset();
-	};
+	}
 
 	void SoundProviderVorbis::seekTimePage(int64_t pos) {
 		std::unique_lock<std::mutex> lock(safeState);
@@ -240,7 +256,7 @@ namespace SoundVorbis {
 		ov_time_seek_page(&vorbis_file, pos);
 		seeked = true;
 		queueReset();
-	};
+	}
 
 	OggVorbisInfo SoundProviderVorbis::getInfo(int i) {
 		OggVorbisInfo info;
@@ -256,7 +272,7 @@ namespace SoundVorbis {
 		info.bitrate_lower = baseinfo->bitrate_lower;
 
 		info.seekable = seekable();
-		info.streams  = ov_streams(&vorbis_file);
+		info.streams = ov_streams(&vorbis_file);
 
 		if (info.seekable) {
 			info.raw_total = ov_raw_total(&vorbis_file, i);
@@ -264,7 +280,7 @@ namespace SoundVorbis {
 			info.time_total = ov_time_total(&vorbis_file, i);
 		}
 		return info;
-	};
+	}
 
 	OggVorbisPosition SoundProviderVorbis::getPosition() {
 		OggVorbisPosition pos;
@@ -273,20 +289,20 @@ namespace SoundVorbis {
 		pos.pcm = ov_pcm_tell(&vorbis_file);
 		pos.time = ov_time_tell(&vorbis_file);
 		return pos;
-	};
+	}
 
 	OggVorbisComment SoundProviderVorbis::getComment(int i) {
 		OggVorbisComment comment;
 		std::unique_lock<std::mutex> lock(safeState);
-		vorbis_comment* comment_struct = ov_comment(&vorbis_file,i);
+		vorbis_comment* comment_struct = ov_comment(&vorbis_file, i);
 		{
-			for(size_t i = 0; i < comment_struct->comments; ++i) {
+			for (size_t i = 0; i < comment_struct->comments; ++i) {
 				int len = comment_struct->comment_lengths[i];
 				comment.comments.emplace_back(comment_struct->user_comments[i], len);
 			}
 		}
 		comment.vendor = comment_struct->vendor;
 		return comment;
-	};
+	}
 
-};
+}

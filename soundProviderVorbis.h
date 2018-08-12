@@ -8,67 +8,110 @@
 #include <exception>
 
 extern "C" {
-	#include <tremor/ivorbiscodec.h>
-	#include <tremor/ivorbisfile.h>
-	#undef _OS_H
+#include <tremor/ivorbiscodec.h>
+#include <tremor/ivorbisfile.h>
+#undef _OS_H
 }
 
 namespace SoundVorbis {
 	USING_NS_SOUND;
 
 	struct OggVorbisInfo { // Functions to fill: 
-		int version; // ov_info
-		int channels;
-		long rate;
+			int version; // ov_info
+			int channels;
+			long rate;
 
-		long bitrate_upper;
-		long bitrate_nominal;
-		long bitrate_lower;
+			long bitrate_upper;
+			long bitrate_nominal;
+			long bitrate_lower;
 
-		bool seekable; // ov_seekable
-		long streams; // ov_streams
+			bool seekable; // ov_seekable
+			long streams; // ov_streams
 
-		int64_t raw_total; // ov_raw_total, only if seekable
-		int64_t pcm_total; // ov_pcm_total
-		int64_t time_total; // ov_time_total
+			int64_t raw_total; // ov_raw_total, only if seekable
+			int64_t pcm_total; // ov_pcm_total
+			int64_t time_total; // ov_time_total
 	};
 
 	struct OggVorbisPosition {
-		int64_t raw;
-		int64_t pcm;
-		int64_t time;
+			int64_t raw;
+			int64_t pcm;
+			int64_t time;
 	};
 
 	struct OggVorbisComment {
-		std::vector<std::string> comments;
-		std::string vendor;
+			std::vector<std::string> comments;
+			std::string vendor;
 	};
 
-	class VorbisException: public std::exception { public: virtual const char* what() const throw() { return "vorbis exeption";} };
+	class VorbisException: public std::exception {
+		public:
+			virtual const char* what() const throw () {
+				return "vorbis exeption";
+			}
+	};
 	namespace VorbisExceptions {
 		// class : public VorbisException { public: virtual const char* what() const throw() { return "vorbis: ";} };
-		class Unknown: public VorbisException { public: virtual const char* what() const throw() { return "vorbis: unknown error";} };
-		class NotSeekable: public VorbisException { public: virtual const char* what() const throw() { return "vorbis: trying to seek in unseekable stream";} };
+		class Unknown: public VorbisException {
+			public:
+				virtual const char* what() const throw () {
+					return "vorbis: unknown error";
+				}
+		};
+		class NotSeekable: public VorbisException {
+			public:
+				virtual const char* what() const throw () {
+					return "vorbis: trying to seek in unseekable stream";
+				}
+		};
 
-		class ReadError: public VorbisException { public: virtual const char* what() const throw() { return "vorbis: read error";} };
-		class NotVorbis: public VorbisException { public: virtual const char* what() const throw() { return "vorbis: data isn't vorbis data";} };
-		class BadVersion: public VorbisException { public: virtual const char* what() const throw() { return "vorbis: vorbis version mismatch";} };
-		class BadHeader: public VorbisException { public: virtual const char* what() const throw() { return "vorbis: invalid vorbis bitstream header";} };
-		class Fault: public VorbisException { public: virtual const char* what() const throw() { return "vorbis: internal logic fault; indicates a bug or heap/stack corruption";} };
+		class ReadError: public VorbisException {
+			public:
+				virtual const char* what() const throw () {
+					return "vorbis: read error";
+				}
+		};
+		class NotVorbis: public VorbisException {
+			public:
+				virtual const char* what() const throw () {
+					return "vorbis: data isn't vorbis data";
+				}
+		};
+		class BadVersion: public VorbisException {
+			public:
+				virtual const char* what() const throw () {
+					return "vorbis: vorbis version mismatch";
+				}
+		};
+		class BadHeader: public VorbisException {
+			public:
+				virtual const char* what() const throw () {
+					return "vorbis: invalid vorbis bitstream header";
+				}
+		};
+		class Fault: public VorbisException {
+			public:
+				virtual const char* what() const throw () {
+					return "vorbis: internal logic fault; indicates a bug or heap/stack corruption";
+				}
+		};
 	}
 
 	class SoundProviderVorbis: public Sound::SoundProviderTask {
-		#if CONFIG_VORBIS_INTROSPECTION
-		public:
-		#else
+#if CONFIG_VORBIS_INTROSPECTION
+			public:
+#else
 		protected:
-		#endif
+#endif
 			OggVorbis_File vorbis_file;
 			std::mutex safeState; // You must NOT preform any blocking operations in "safe" area
 
 		protected:
 			long frequency;
-			virtual unsigned long int getFrequency() override { return frequency; };
+			virtual unsigned long int getFrequency() override {
+				return frequency;
+			}
+			;
 			unsigned int ch;
 			unsigned int chTotal;
 			virtual void task_prestop() override final;
@@ -88,7 +131,10 @@ namespace SoundVorbis {
 			void open_file(FILE *f, unsigned int ch_arg, char *initial, long ibytes);
 			void open_callbacks(void *datasource, const ov_callbacks& callbacks, unsigned int ch_arg, char *initial, long ibytes);
 
-			bool seekable() { return (ov_seekable(&vorbis_file) == 0) ? false : true; }; // UNSAFE
+			bool seekable() { // UNSAFE
+				return (ov_seekable(&vorbis_file) == 0) ? false : true;
+			}
+			;
 
 			void checkSeekable(); // UNSAFE
 		public:
@@ -110,4 +156,5 @@ namespace SoundVorbis {
 			OggVorbisPosition getPosition();
 			OggVorbisComment getComment(int i = -1);
 	};
-};
+}
+;
