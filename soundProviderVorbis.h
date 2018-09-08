@@ -16,7 +16,7 @@ extern "C" {
 namespace SoundVorbis {
 	USING_NS_SOUND;
 
-	struct OggVorbisInfo { // Functions to fill: 
+	struct OggVorbisInfo { // Functions to fill:
 			int version; // ov_info
 			int channels;
 			long rate;
@@ -123,7 +123,7 @@ namespace SoundVorbis {
 			void vorbis_read();
 
 			std::atomic<bool> seeked = {false}; // Read again
-			std::atomic<bool> exit_now = {false}; // If true, exit task immedeatly
+			std::atomic<bool> exit_now = {false}; // If true, exit task immediately
 			std::mutex heapUsed; // Lock when deleting task
 
 			void checkErr(int err);
