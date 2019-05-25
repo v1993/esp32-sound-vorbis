@@ -78,7 +78,7 @@ namespace SoundVorbis {
 	SoundProviderVorbis::SoundProviderVorbis(const unsigned char *data, int len, unsigned int ch_arg, char *initial, long ibytes) {
 		FILE* memfile = fmemopen(const_cast<unsigned char*>(data), len, "r");
 		if (unlikely(memfile == nullptr)) {
-			std::system_error(errno);
+			throw std::system_error(errno, std::generic_category());
 		}
 		open_file(memfile, ch_arg, initial, ibytes);
 	}
@@ -86,7 +86,7 @@ namespace SoundVorbis {
 	SoundProviderVorbis::SoundProviderVorbis(const char* file, unsigned int ch_arg, char *initial, long ibytes) {
 		FILE* filed = fopen(file, "r");
 		if (unlikely(filed == nullptr)) {
-			std::system_error(errno);
+			throw std::system_error(errno, std::generic_category());
 		}
 		try {
 			open_file(filed, ch_arg, initial, ibytes);
